@@ -30,7 +30,7 @@ Then use **Chrome or Edge** at http://localhost:4700 and click **Engage**. The c
 - **Naps:** Render's free tier sleeps after about 15 idle minutes. The first question after a nap takes up to a minute, and JARVIS says "waking up…" while it waits.
 - **Security:** the passphrase protects your free model allowances from strangers. Wrong guesses are rate-limited, and only `https://rahul9994.github.io` may call the brain from a browser. Your keys only ever live in Render's settings and your Windows environment, never in the repo.
 - **Keeping "remember that…" notes:** Render's free disk is wiped on every restart. To keep notes made by voice, create a [fine-grained token](https://github.com/settings/personal-access-tokens/new) with access to **only** `Vibing-projects` and the permission **Contents: Read and write**, and put it in Render's `GITHUB_TOKEN`. JARVIS then commits each capture to `JARVIS/notes/captures/`, pulls them back on restart, and the Pages galaxy picks them up on its next publish.
-- **Default URL:** `viewer/config.js` is deliberately empty. Only put a Render address there that you have confirmed is yours.
+- **Default URL:** `viewer/config.js` points at `https://rahul9994-jarvis.onrender.com`, verified as this JARVIS. Only ever put an address there that you have confirmed is yours.
 - **Privacy:** this repo is public, so everything in `notes/` is public too. Keep private notes out of this repo.
 
 ## Give it a brain: free models
