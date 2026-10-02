@@ -4,7 +4,7 @@
 # the service's Environment tab -- it's the passphrase you type into JARVIS).
 services:
   - type: web
-    name: jarvis-brain
+    name: rahul9994-jarvis
     runtime: python
     plan: free
     rootDir: JARVIS

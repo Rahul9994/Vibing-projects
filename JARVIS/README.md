@@ -19,18 +19,18 @@ Then use **Chrome or Edge** at http://localhost:4700 and click **Engage**. The c
 
 **Set up Render once (about 5 minutes):**
 
-1. Go to [render.com](https://render.com), sign in with GitHub, then choose **New + → Blueprint** and pick `Rahul9994/Vibing-projects`. Render reads `render.yaml` and proposes a free web service called **jarvis-brain**.
+1. Go to [render.com](https://render.com), sign in with GitHub, then choose **New + → Blueprint** and pick `Rahul9994/Vibing-projects`. Render reads `render.yaml` and proposes a free web service called **rahul9994-jarvis**.
 2. When it asks for the secret values, paste your **`GROQ_API_KEY`** and **`OPENROUTER_API_KEY`** into Render's form. `GITHUB_TOKEN` is optional (see below); leave it blank for now. Then click **Apply**.
-3. Wait until the service says **Live**. Its address will be `https://jarvis-brain.onrender.com`, or similar if that name is taken.
+3. Wait until the service says **Live**. Its address will be `https://rahul9994-jarvis.onrender.com`. The name was free on 2026-10-03; if Render adds a suffix, use the address it shows.
 4. In the service, open **Environment** and reveal **`JARVIS_ACCESS_KEY`**. Render generated it, and it's your **passphrase**.
-5. Open the page, click the **link icon** in the top-left panel, and enter the passphrase. Also paste the URL if Render gave a different one. Each browser remembers it, so you do this once per device.
+5. Open the page, click the **link icon** in the top-left panel, and enter the brain's URL and the passphrase. Each browser remembers them, so you do this once per device. Once the URL is final, putting it in `viewer/config.js` saves typing it on new devices.
 
 **Good to know:**
 
 - **Naps:** Render's free tier sleeps after about 15 idle minutes. The first question after a nap takes up to a minute, and JARVIS says "waking up…" while it waits.
 - **Security:** the passphrase protects your free model allowances from strangers. Wrong guesses are rate-limited, and only `https://rahul9994.github.io` may call the brain from a browser. Your keys only ever live in Render's settings and your Windows environment, never in the repo.
 - **Keeping "remember that…" notes:** Render's free disk is wiped on every restart. To keep notes made by voice, create a [fine-grained token](https://github.com/settings/personal-access-tokens/new) with access to **only** `Vibing-projects` and the permission **Contents: Read and write**, and put it in Render's `GITHUB_TOKEN`. JARVIS then commits each capture to `JARVIS/notes/captures/`, pulls them back on restart, and the Pages galaxy picks them up on its next publish.
-- **Different URL:** if Render's URL isn't `jarvis-brain.onrender.com`, update `viewer/config.js` so new devices get it by default.
+- **Default URL:** `viewer/config.js` is deliberately empty. Only put a Render address there that you have confirmed is yours.
 - **Privacy:** this repo is public, so everything in `notes/` is public too. Keep private notes out of this repo.
 
 ## Give it a brain: free models
