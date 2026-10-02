@@ -1,0 +1,4 @@
+config.json
+__pycache__/
+viewer/graph-data.js
+viewer/graph-data.js.tmp

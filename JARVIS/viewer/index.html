@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>J.A.R.V.I.S.</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%235fd4ff' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%235fd4ff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://esm.sh/three@0.180.0",
+      "three/": "https://esm.sh/three@0.180.0/",
+      "3d-force-graph": "https://esm.sh/3d-force-graph@1.80.1?external=three"
+    }
+  }
+  </script>
+  <script src="graph-data.js"></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body data-state="idle">
+  <div id="graph"></div>
+  <div id="vignette"></div>
+
+  <!-- Boot screen: also the click that unlocks browser audio -->
+  <div id="boot" role="dialog" aria-label="Start JARVIS">
+    <div class="reactor reactor--boot" aria-hidden="true">
+      <span class="ring ring-1"></span><span class="ring ring-2"></span><span class="ring ring-3"></span><span class="core"></span>
+    </div>
+    <h1 class="boot-title">J.A.R.V.I.S.</h1>
+    <p class="boot-sub">Just A Rather Very Intelligent System</p>
+    <ol id="boot-log" aria-live="polite"></ol>
+    <button id="engage" type="button" disabled>Initialising…</button>
+    <p class="boot-hint">One click wakes the voice. Use Chrome or Edge for the microphone.</p>
+  </div>
+
+  <!-- Top-left HUD -->
+  <header id="hud">
+    <div class="hud-brand"><span class="hud-dot"></span>J.A.R.V.I.S.</div>
+    <dl class="hud-stats">
+      <div><dt>Notes</dt><dd id="stat-notes">–</dd></div>
+      <div><dt>Links</dt><dd id="stat-links">–</dd></div>
+      <div><dt>Time</dt><dd id="stat-clock">–</dd></div>
+    </dl>
+    <div class="hud-brain"><span class="brain-dot" id="brain-dot"></span><span id="stat-brain">Brain: connecting…</span></div>
+  </header>
+
+  <!-- Top-right: groups legend + toggles -->
+  <aside id="legend" aria-label="Note groups and settings">
+    <h2 class="legend-title">Constellations</h2>
+    <ul id="legend-groups"></ul>
+    <div class="legend-toggles">
+      <label class="toggle"><input type="checkbox" id="opt-voice" checked><span></span>Speak answers</label>
+      <label class="toggle"><input type="checkbox" id="opt-wake"><span></span>Wake word “Jarvis”</label>
+      <label class="toggle"><input type="checkbox" id="opt-drift" checked><span></span>Idle drift</label>
+    </div>
+  </aside>
+
+  <!-- Note panel -->
+  <aside id="panel" aria-label="Note" aria-hidden="true">
+    <button class="panel-close" id="panel-close" type="button" aria-label="Close note">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="panel-group" id="panel-group"></div>
+    <h2 class="panel-title" id="panel-title"></h2>
+    <div class="panel-path" id="panel-path"></div>
+    <div class="panel-body" id="panel-body"></div>
+    <h3 class="panel-sub">Connected</h3>
+    <div class="panel-links" id="panel-links"></div>
+  </aside>
+
+  <!-- Bottom dock -->
+  <section id="dock">
+    <div id="answer" aria-live="polite">
+      <div class="answer-q" id="answer-q"></div>
+      <div class="answer-text" id="answer-text"></div>
+      <div class="answer-sources" id="answer-sources"></div>
+    </div>
+    <div id="status"></div>
+    <form id="ask" autocomplete="off">
+      <div class="reactor reactor--orb" id="orb" aria-hidden="true">
+        <span class="ring ring-1"></span><span class="ring ring-2"></span><span class="ring ring-3"></span><span class="core"></span>
+      </div>
+      <input id="q" type="text" placeholder="Ask about your notes — or “remember that…”" aria-label="Ask JARVIS">
+      <button type="button" id="mic" class="icon-btn" aria-label="Talk (M)" title="Talk (M)">
+        <svg viewBox="0 0 24 24" width="20" height="20"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button type="submit" class="icon-btn icon-btn--send" aria-label="Send">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </form>
+    <div class="keys"><kbd>/</kbd> ask <kbd>M</kbd> talk <kbd>Esc</kbd> hush &amp; reset <kbd>R</kbd> overview</div>
+  </section>
+
+  <div id="toast" role="status"></div>
+</body>
+</html>
