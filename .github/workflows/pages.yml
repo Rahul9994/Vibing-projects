@@ -40,6 +40,10 @@ jobs:
           cp -r JARVIS/viewer/. _site/jarvis/
           cp .github/pages/index.html _site/index.html
           touch _site/.nojekyll
+          # Cache-bust: Pages lets browsers keep files for 10 minutes, so stamp each
+          # asset reference with the commit -- a new deploy is picked up immediately.
+          sed -i -E "s/(src|href)=\"(app\.js|config\.js|graph-data\.js|style\.css)\"/\1=\"\2?v=${GITHUB_SHA::8}\"/g" _site/jarvis/index.html
+          grep -oE '(src|href)="[a-z-]+\.(js|css)\?v=[0-9a-f]+"' _site/jarvis/index.html
 
       - uses: actions/configure-pages@v6
 
