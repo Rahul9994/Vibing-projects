@@ -1,5 +1,6 @@
 // J.A.R.V.I.S. viewer -- the galaxy, the voice and the magic.
-// GRAPH comes from graph-data.js (written by build.py / server.py).
+// The galaxy comes from graph-data.js (written by build.py / server.py, or by the Pages
+// workflow); when hosted, the live brain's /api/graph replaces it (it includes new captures).
 import * as THREE from 'three';
 import ForceGraph3D from '3d-force-graph';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -22,10 +23,48 @@ const prefs = {
   set(key, val) { try { localStorage.setItem('jarvis-' + key, val ? '1' : '0'); } catch { /* private mode */ } },
 };
 
+// ------------------------------------------------------------------ connection to the brain
+
+// Served by server.py (localhost or Render) -> talk to the same origin.
+// Served by a static host (GitHub Pages) -> talk to the Render URL from config.js, or the one
+// saved on this device. Which one we are is detected by asking our own origin for /api/health.
+let ON_STATIC_HOST = true;
+const store = {
+  get(k) { try { return localStorage.getItem('jarvis-' + k) || ''; } catch { return ''; } },
+  set(k, v) { try { if (v) localStorage.setItem('jarvis-' + k, v); else localStorage.removeItem('jarvis-' + k); } catch { /* private mode */ } },
+};
+const defaultApi = () => ((window.JARVIS_CONFIG || {}).api || '').replace(/\/+$/, '');
+const conn = { base: '', key: store.get('key') };
+let hostPromise = null;
+function detectHost() {
+  hostPromise ||= (async () => {
+    if (location.protocol !== 'file:') {
+      try {
+        const r = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(2500) });
+        const j = await r.json();
+        if (r.ok && j && j.ok) { ON_STATIC_HOST = false; conn.base = ''; return; }
+      } catch { /* not our server: a static host */ }
+    }
+    ON_STATIC_HOST = true;
+    conn.base = (store.get('api') || defaultApi()).replace(/\/+$/, '');
+  })();
+  return hostPromise;
+}
+const apiUrl = (path) => conn.base + path;
+async function apiFetch(path, opts = {}) {
+  const headers = { ...(opts.headers || {}) };
+  if (conn.key) headers['X-Jarvis-Key'] = conn.key;
+  const res = await fetch(apiUrl(path), { ...opts, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { const err = new Error(data.error || `HTTP ${res.status}`); err.status = res.status; throw err; }
+  return data;
+}
+
 // ------------------------------------------------------------------ data & colours
 
 const PALETTE = ['#4cc9f0', '#f72585', '#ffd166', '#06d6a0', '#b388ff', '#ff8c42', '#72efdd', '#ff5d73', '#9ef01a', '#7b8cff', '#f4a261', '#48bfe3'];
-const groups = [...new Set(GRAPH.nodes.map((n) => n.group))].sort();
+const DATA = typeof GRAPH !== 'undefined' ? GRAPH : { nodes: [], links: [], meta: { count: 0, links: 0, groups: [] } };
+const groups = [...new Set(DATA.nodes.map((n) => n.group))].sort();
 function groupColor(g) {
   if (!groups.includes(g)) groups.push(g);
   return PALETTE[groups.indexOf(g) % PALETTE.length];
@@ -39,9 +78,9 @@ function addEdge(l) {
   if (!adj.has(b)) adj.set(b, new Set());
   adj.get(a).add(b); adj.get(b).add(a);
 }
-GRAPH.links.forEach(addEdge);
+DATA.links.forEach(addEdge);
 
-const status = { count: GRAPH.meta.count, title: 'sir', brain: '', backend: 'offline' };
+const status = { count: DATA.meta.count, title: 'sir', brain: '', backend: 'offline', link: 'connecting' };
 
 // ------------------------------------------------------------------ textures & node objects
 
@@ -84,7 +123,7 @@ function makeLabel(text) {
 }
 
 const nodeRadius = (n) => 2.4 + Math.sqrt(n.degree || 0) * 1.25;
-const SHOW_ALL_LABELS = GRAPH.nodes.length <= 90;
+const SHOW_ALL_LABELS = DATA.nodes.length <= 90;
 
 function makeNodeObject(n) {
   const color = new THREE.Color(groupColor(n.group));
@@ -135,7 +174,7 @@ const Graph = new ForceGraph3D(document.getElementById('graph'), { controlType: 
     refreshStyles();
   })
   .onBackgroundClick(() => clearFocus())
-  .graphData(GRAPH);
+  .graphData(DATA);
 
 Graph.d3Force('charge').strength(-140);
 Graph.d3Force('link').distance(48);
@@ -517,10 +556,17 @@ const Wake = {
 // ------------------------------------------------------------------ asking
 
 async function post(url, body) {
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-  return data;
+  await detectHost();
+  if (ON_STATIC_HOST && !conn.base) {
+    openConnect('Where does my brain live? Paste the Render URL and your passphrase.');
+    throw new Error('not connected to a brain yet');
+  }
+  try {
+    return await apiFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  } catch (err) {
+    if (err.status === 401) openConnect('I need the passphrase before I can think, sir.');
+    throw err;
+  }
 }
 
 let typing = 0;
@@ -627,6 +673,8 @@ $('#q').addEventListener('input', () => { if (Voice.speaking) Voice.stop(); });
 $('#mic').addEventListener('click', () => startListening());
 
 addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $('#connect').classList.contains('open')) { closeConnect(); return; }
+  if (e.target.closest && e.target.closest('#connect')) return;
   const inField = e.target === $('#q');
   if (e.key === 'Escape') {
     Voice.stop();
@@ -664,7 +712,8 @@ function showQuota(q) {
   if (status.brain) $('#stat-brain').textContent = `Brain: ${status.brain}${quotaSuffix(status.brain)}`;
 }
 async function refreshQuota() {
-  try { showQuota((await fetch('/api/status').then((r) => r.json())).quota); } catch { /* server busy */ }
+  if (status.link !== 'ready') return;
+  try { showQuota((await apiFetch('/api/status')).quota); } catch { /* server busy */ }
 }
 
 function setBrain(label, live) {
@@ -713,35 +762,149 @@ async function boot() {
   updateStats();
   tickClock();
   renderLegend();
-  logLine(`Indexing knowledge base… <b>${GRAPH.meta.count}</b> notes`);
-  await sleep(320);
-  logLine(`Mapping synaptic links… <b>${GRAPH.meta.links}</b> connections across <b>${groups.length}</b> constellations`);
-  await sleep(320);
-  try {
-    const s = await fetch('/api/status').then((r) => r.json());
-    Object.assign(status, { count: s.count, title: s.user_title || 'sir', brain: s.brain, backend: s.backend });
-    setBrain(s.brain, s.backend !== 'offline');
-    logLine(`Cognitive core… <b>${escapeHtml(s.brain)}</b>${s.fallbacks ? ` + ${s.fallbacks} fallback models` : ''}`);
-    if (s.quota) logLine(`OpenRouter backup… <b>${s.quota.remaining}</b> of ${s.quota.limit} free requests left today`);
-    showQuota(s.quota);
-  } catch {
-    setBrain('server unreachable', false);
-    logLine('Cognitive core… <b>server unreachable</b> — run python server.py');
-  }
-  await sleep(320);
+  logLine(`Indexing knowledge base… <b>${DATA.meta.count}</b> notes`);
+  await sleep(300);
+  logLine(`Mapping synaptic links… <b>${DATA.meta.links}</b> connections across <b>${groups.length}</b> constellations`);
+  await sleep(300);
   if (!Voice.voice) Voice.pick();
   logLine(`Voice synthesis… <b>${escapeHtml(Voice.voice ? Voice.voice.name : 'browser default')}</b>${SR ? '' : ' · mic needs Chrome/Edge'}`);
   const btn = $('#engage');
   btn.disabled = false;
   btn.textContent = 'Engage';
   btn.focus();
+  connectBrain(); // the galaxy doesn't wait for a sleeping server
 }
+
+function note(html) { if (engaged) toast(html.replace(/<[^>]+>/g, '')); else logLine(html); }
+
+// Free Render servers nap after ~15 idle minutes and take up to a minute to wake.
+async function wakeBrain() {
+  const started = Date.now();
+  // A cold start can hold the first request open for up to a minute, so explain on a timer
+  // rather than waiting for a request to fail.
+  const explain = setTimeout(() => {
+    setBrain('waking up on Render…', false);
+    note('Cognitive core… <b>waking up</b> (free servers nap; up to a minute)');
+  }, 2500);
+  try {
+    while (Date.now() - started < 100000) {
+      try {
+        const r = await fetch(apiUrl('/api/health'), { cache: 'no-store', signal: AbortSignal.timeout(75000) });
+        if (r.ok) return true;
+      } catch { /* still asleep, or a wrong URL */ }
+      await sleep(3000);
+    }
+    return false;
+  } finally {
+    clearTimeout(explain);
+  }
+}
+
+let connecting = null;
+function connectBrain() {
+  if (!connecting) connecting = doConnect().finally(() => { connecting = null; });
+  return connecting;
+}
+
+async function doConnect() {
+  status.link = 'connecting';
+  await detectHost();
+  if (ON_STATIC_HOST && !conn.base) {
+    status.link = 'down';
+    setBrain('not connected', false);
+    return openConnect('Where does my brain live? Paste the Render URL and your passphrase.');
+  }
+  setBrain('connecting…', false);
+  if (!(await wakeBrain())) {
+    status.link = 'down';
+    setBrain('unreachable', false);
+    note(`Cognitive core… <b>unreachable</b>${ON_STATIC_HOST ? ' — check the URL under Connection' : ' — is server.py running?'}`);
+    if (ON_STATIC_HOST) openConnect("I can't reach my brain at that address. Is the Render service running?");
+    return;
+  }
+  let s;
+  try {
+    s = await apiFetch('/api/status');
+  } catch (err) {
+    status.link = 'down';
+    setBrain(err.status === 401 ? 'locked — passphrase needed' : 'error', false);
+    if (err.status === 401) return openConnect(conn.key ? 'That passphrase was refused, sir.' : 'The brain is locked. Enter your passphrase.');
+    return note(`Cognitive core… <b>${escapeHtml(err.message)}</b>`);
+  }
+  status.link = 'ready';
+  Object.assign(status, { count: s.count, title: s.user_title || 'sir', brain: s.brain, backend: s.backend });
+  setBrain(s.brain, s.backend !== 'offline');
+  showQuota(s.quota);
+  note(`Cognitive core… <b>${escapeHtml(s.brain)}</b>${s.fallbacks ? ` + ${s.fallbacks} fallback models` : ''}`);
+  // The live brain is the source of truth: it has captures made from other devices.
+  if (s.count !== Graph.graphData().nodes.length) {
+    try {
+      const fresh = await apiFetch('/api/graph');
+      const added = fresh.nodes.length - Graph.graphData().nodes.length;
+      const hadGalaxy = Graph.graphData().nodes.length > 0;
+      loadGraph(fresh);
+      if (hadGalaxy && added > 0) note(`Synced <b>${added}</b> new note${added === 1 ? '' : 's'} from the brain`);
+    } catch { /* keep the bundled galaxy */ }
+  }
+}
+
+function loadGraph(payload) {
+  adj.clear();
+  payload.links.forEach(addEdge);
+  payload.nodes.forEach((n) => groupColor(n.group));
+  hl.nodes = new Set(); hl.links = new Set(); hl.focus = null;
+  Graph.graphData({ nodes: payload.nodes, links: payload.links });
+  updateStats();
+  renderLegend();
+}
+
+// ------------------------------------------------------------------ connect dialog
+
+function openConnect(message = '') {
+  $('#connect-msg').textContent = message;
+  $('#connect-url').value = conn.base || defaultApi();
+  $('#connect-key').value = conn.key;
+  $('#connect-url-row').hidden = !ON_STATIC_HOST;
+  $('#connect').classList.add('open');
+  $('#connect').setAttribute('aria-hidden', 'false');
+  setTimeout(() => (ON_STATIC_HOST && !$('#connect-url').value ? $('#connect-url') : $('#connect-key')).focus(), 60);
+}
+function closeConnect() {
+  $('#connect').classList.remove('open');
+  $('#connect').setAttribute('aria-hidden', 'true');
+}
+$('#connect-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (ON_STATIC_HOST) {
+    const url = $('#connect-url').value.trim().replace(/\/+$/, '');
+    if (!/^https?:\/\/[^\s/]+/i.test(url)) { $('#connect-msg').textContent = 'Paste the full address, starting with https://'; return; }
+    conn.base = url;
+    store.set('api', url === defaultApi() ? '' : url);
+  }
+  conn.key = $('#connect-key').value.trim();
+  store.set('key', conn.key);
+  closeConnect();
+  connectBrain();
+});
+$('#connect-cancel').addEventListener('click', closeConnect);
+$('#connect-forget').addEventListener('click', () => {
+  store.set('api', '');
+  store.set('key', '');
+  conn.key = '';
+  conn.base = defaultApi();
+  $('#connect-key').value = '';
+  $('#connect-url').value = conn.base;
+  $('#connect-msg').textContent = 'Forgotten on this device.';
+});
+$('#open-connect').addEventListener('click', () => openConnect());
 
 function greetingLine() {
   const h = new Date().getHours();
   const part = h < 5 ? 'Good evening' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
   let line = `${part}, ${status.title}. ${Graph.graphData().nodes.length} notes indexed, all present and accounted for.`;
-  if (status.backend === 'offline') line += ' I am running without an API key, so expect a diligent librarian rather than a genius.';
+  if (status.link === 'connecting') line += ' My brain is still waking up on the server; give me a moment before the hard questions.';
+  else if (status.link === 'down') line += ' I cannot reach my brain just now, so open Connection and we shall sort it out.';
+  else if (status.backend === 'offline') line += ' I am running without an API key, so expect a diligent librarian rather than a genius.';
   return line;
 }
 

@@ -18,6 +18,7 @@
     }
   }
   </script>
+  <script src="config.js"></script>
   <script src="graph-data.js"></script>
   <script type="module" src="app.js"></script>
 </head>
@@ -45,7 +46,12 @@
       <div><dt>Links</dt><dd id="stat-links">–</dd></div>
       <div><dt>Time</dt><dd id="stat-clock">–</dd></div>
     </dl>
-    <div class="hud-brain"><span class="brain-dot" id="brain-dot"></span><span id="stat-brain">Brain: connecting…</span></div>
+    <div class="hud-brain">
+      <span class="brain-dot" id="brain-dot"></span><span id="stat-brain">Brain: connecting…</span>
+      <button type="button" class="hud-link" id="open-connect" title="Connection settings" aria-label="Connection settings">
+        <svg viewBox="0 0 24 24" width="15" height="15"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
   </header>
 
   <!-- Top-right: groups legend + toggles -->
@@ -94,6 +100,27 @@
     </form>
     <div class="keys"><kbd>/</kbd> ask <kbd>M</kbd> talk <kbd>Esc</kbd> hush &amp; reset <kbd>R</kbd> overview</div>
   </section>
+
+  <!-- Connect dialog: which brain (Render URL) and the passphrase; saved on this device only -->
+  <div id="connect" role="dialog" aria-modal="true" aria-labelledby="connect-title" aria-hidden="true">
+    <form id="connect-form" class="connect-card" autocomplete="off">
+      <h2 id="connect-title">Connect to the brain</h2>
+      <p class="connect-msg" id="connect-msg"></p>
+      <label id="connect-url-row">Brain URL
+        <input id="connect-url" type="url" placeholder="https://jarvis-brain.onrender.com" spellcheck="false">
+      </label>
+      <label>Passphrase
+        <input id="connect-key" type="password" placeholder="JARVIS_ACCESS_KEY from Render" autocomplete="current-password">
+      </label>
+      <p class="connect-note">Saved in this browser only. Use “Forget” on shared computers.</p>
+      <div class="connect-actions">
+        <button type="button" id="connect-forget" class="ghost">Forget</button>
+        <span></span>
+        <button type="button" id="connect-cancel" class="ghost">Cancel</button>
+        <button type="submit" class="primary">Connect</button>
+      </div>
+    </form>
+  </div>
 
   <div id="toast" role="status"></div>
 </body>

@@ -1,0 +1,2 @@
+# JARVIS uses only the Python standard library -- nothing to install.
+# (This file exists so hosts like Render have a standard build step.)

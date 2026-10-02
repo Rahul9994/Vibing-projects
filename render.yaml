@@ -1,0 +1,37 @@
+# Render Blueprint: JARVIS's brain (JARVIS/server.py) as a free web service.
+# Render dashboard -> New -> Blueprint -> pick this repo. You will be asked for the
+# secrets marked `sync: false`; JARVIS_ACCESS_KEY is generated for you (copy it from
+# the service's Environment tab -- it's the passphrase you type into JARVIS).
+services:
+  - type: web
+    name: jarvis-brain
+    runtime: python
+    plan: free
+    rootDir: JARVIS
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    healthCheckPath: /api/health
+    autoDeploy: true
+    buildFilter:
+      ignoredPaths:
+        # "remember that..." commits land here; they must not trigger a redeploy
+        - JARVIS/notes/captures/**
+    envVars:
+      - key: JARVIS_HOSTED            # public bind + passphrase + rate limits
+        value: "1"
+      - key: JARVIS_ACCESS_KEY        # the passphrase -- required in hosted mode
+        generateValue: true
+      - key: ALLOWED_ORIGINS          # the GitHub Pages site that may call this brain
+        value: https://rahul9994.github.io
+      - key: TZ                       # so "Local time" and capture dates are yours, not UTC
+        value: Asia/Kolkata
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      # Optional: keep "remember that..." notes across restarts (free disks are wiped).
+      # Fine-grained token for this repo only, permission "Contents: Read and write".
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_REPO
+        value: Rahul9994/Vibing-projects

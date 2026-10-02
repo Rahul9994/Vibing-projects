@@ -1,0 +1,58 @@
+# Publishes the Vibing-projects site to GitHub Pages:
+#   https://rahul9994.github.io/Vibing-projects/          -> project index
+#   https://rahul9994.github.io/Vibing-projects/jarvis/   -> JARVIS (the brain runs on Render)
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "JARVIS/**"
+      - ".github/pages/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Build the galaxy (graph-data.js) from the notes
+        run: python JARVIS/build.py
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site/jarvis
+          cp -r JARVIS/viewer/. _site/jarvis/
+          cp .github/pages/index.html _site/index.html
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}jarvis/
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

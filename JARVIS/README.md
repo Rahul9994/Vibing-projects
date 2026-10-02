@@ -12,6 +12,27 @@ python server.py --open
 
 Then use **Chrome or Edge** at http://localhost:4700 and click **Engage**. The click is what lets the browser play JARVIS's voice.
 
+## Use it anywhere: GitHub Pages + Render
+
+- **The page** is published to **https://rahul9994.github.io/Vibing-projects/jarvis/** by `.github/workflows/pages.yml` on every push.
+- **The brain** (`server.py`, holding your API keys) runs on **Render's free tier**, set up from `render.yaml` in the repo root.
+
+**Set up Render once (about 5 minutes):**
+
+1. Go to [render.com](https://render.com), sign in with GitHub, then choose **New + → Blueprint** and pick `Rahul9994/Vibing-projects`. Render reads `render.yaml` and proposes a free web service called **jarvis-brain**.
+2. When it asks for the secret values, paste your **`GROQ_API_KEY`** and **`OPENROUTER_API_KEY`** into Render's form. `GITHUB_TOKEN` is optional (see below); leave it blank for now. Then click **Apply**.
+3. Wait until the service says **Live**. Its address will be `https://jarvis-brain.onrender.com`, or similar if that name is taken.
+4. In the service, open **Environment** and reveal **`JARVIS_ACCESS_KEY`**. Render generated it, and it's your **passphrase**.
+5. Open the page, click the **link icon** in the top-left panel, and enter the passphrase. Also paste the URL if Render gave a different one. Each browser remembers it, so you do this once per device.
+
+**Good to know:**
+
+- **Naps:** Render's free tier sleeps after about 15 idle minutes. The first question after a nap takes up to a minute, and JARVIS says "waking up…" while it waits.
+- **Security:** the passphrase protects your free model allowances from strangers. Wrong guesses are rate-limited, and only `https://rahul9994.github.io` may call the brain from a browser. Your keys only ever live in Render's settings and your Windows environment, never in the repo.
+- **Keeping "remember that…" notes:** Render's free disk is wiped on every restart. To keep notes made by voice, create a [fine-grained token](https://github.com/settings/personal-access-tokens/new) with access to **only** `Vibing-projects` and the permission **Contents: Read and write**, and put it in Render's `GITHUB_TOKEN`. JARVIS then commits each capture to `JARVIS/notes/captures/`, pulls them back on restart, and the Pages galaxy picks them up on its next publish.
+- **Different URL:** if Render's URL isn't `jarvis-brain.onrender.com`, update `viewer/config.js` so new devices get it by default.
+- **Privacy:** this repo is public, so everything in `notes/` is public too. Keep private notes out of this repo.
+
 ## Give it a brain: free models
 
 JARVIS works out of the box as an **offline librarian**: it finds the right note and reads the most relevant line from it. For real answers with wit it uses **free models from Groq (first) and OpenRouter (backup)**.
@@ -95,7 +116,9 @@ Keys: `/` ask · `M` talk · `Esc` stop talking and reset · `R` overview · cli
 |---|---|
 | `build.py` | scans the notes and writes `viewer/graph-data.js` (node id = array index) |
 | `brain.py` | BM25 note search, the butler persona, the provider chain (Zen, OpenRouter, Claude, CLI, Ollama, offline); `--test` and `--free` |
-| `server.py` | localhost-only server: serves **only** `viewer/`, plus `/chat`, `/remember` and `/api/status` |
+| `server.py` | serves **only** `viewer/`, plus `/chat`, `/remember`, `/api/status`, `/api/graph` and `/api/health`. Localhost-only by default; in hosted mode it adds the passphrase, CORS and rate limits |
+| `github_sync.py` | optional: commits "remember that…" notes to GitHub so they survive Render restarts |
+| `viewer/config.js` | where the page finds the brain when opened from GitHub Pages |
 | `viewer/` | the page: 3d-force-graph + three.js (from a CDN), bloom, starfield, voice |
 | `config.example.json` | all settings: models, order, notes folder. Optional: copy it to `config.json` to customise (`config.json` is git-ignored; the built-in defaults match the example) |
 

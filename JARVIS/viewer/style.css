@@ -215,6 +215,43 @@ body.panel-open #legend { opacity: 0; pointer-events: none; }
 .keys { text-align: center; font-size: 11.5px; color: #5d7088; }
 kbd { font-family: var(--mono); font-size: 10.5px; padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(127, 147, 170, 0.35); color: #9db0c5; margin: 0 2px 0 8px; }
 
+/* ------------------------------------------------------------ connect dialog */
+.hud-link {
+  margin-left: auto; border: 0; background: transparent; color: var(--muted); cursor: pointer;
+  padding: 3px; border-radius: 6px; display: grid; place-items: center;
+}
+.hud-link:hover { color: var(--cyan-hot); background: rgba(95, 212, 255, 0.1); }
+.hud-link:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+#connect {
+  position: fixed; inset: 0; z-index: 70; display: none; place-items: center; padding: 16px;
+  background: rgba(1, 3, 8, 0.72); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+#connect.open { display: grid; }
+.connect-card {
+  width: min(440px, 100%); padding: 22px 22px 18px; border-radius: 16px;
+  background: var(--glass-strong); border: 1px solid var(--line-strong);
+  box-shadow: 0 0 40px rgba(95, 212, 255, 0.12); display: grid; gap: 12px;
+}
+.connect-card h2 { margin: 0; font-family: var(--hud); font-size: 22px; letter-spacing: 0.06em; color: #f1f8ff; }
+.connect-msg { margin: 0; min-height: 1em; font-size: 14px; color: #ffd9a8; }
+.connect-msg:empty { display: none; }
+.connect-card label { display: grid; gap: 6px; font-family: var(--hud); font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.connect-card label[hidden] { display: none; }
+.connect-card input {
+  font: 400 15px var(--body); color: #f1f8ff; background: rgba(2, 6, 14, 0.8);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; outline: 0; letter-spacing: normal; text-transform: none;
+}
+.connect-card input:focus { border-color: var(--line-strong); box-shadow: 0 0 0 3px rgba(95, 212, 255, 0.15); }
+.connect-note { margin: 0; font-size: 12.5px; color: var(--muted); }
+.connect-actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.connect-actions span { flex: 1; }
+.connect-actions button { font: 600 14px var(--hud); letter-spacing: 0.12em; text-transform: uppercase; padding: 9px 16px; border-radius: 999px; cursor: pointer; }
+.connect-actions .ghost { border: 1px solid var(--line); background: transparent; color: var(--muted); }
+.connect-actions .ghost:hover { color: var(--text); border-color: var(--line-strong); }
+.connect-actions .primary { border: 1px solid var(--line-strong); background: rgba(95, 212, 255, 0.18); color: var(--cyan-hot); }
+.connect-actions .primary:hover { background: rgba(95, 212, 255, 0.28); }
+.connect-actions button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
 #toast {
   position: fixed; top: 18px; left: 50%; transform: translate(-50%, -12px); z-index: 60;
   padding: 9px 16px; border-radius: 10px; background: var(--glass-strong); border: 1px solid rgba(255, 181, 71, 0.45);
